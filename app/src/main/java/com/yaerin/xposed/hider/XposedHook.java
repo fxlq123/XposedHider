@@ -246,6 +246,98 @@ public class XposedHook {
                     }
             );
         }
+        
+        findAndHookMethod("java.lang.Runtime", lpparam.classLoader, "exec", String[].class, String[].class, File.class, new XC_MethodHook() {
+
+           @Override
+
+           protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+
+               if (debugPref) {
+
+                   XposedBridge.log("Hooked Runtime.exec");
+
+               }
+
+ 
+
+               String[] execArray = (String[]) param.args[0]; // Grab the tokenized array of commands
+
+               if ((execArray != null) && (execArray.length >= 1)) { // Do some checking so we don't break anything
+
+                   String firstParam = execArray[0]; // firstParam is going to be the main command/program being run
+
+                   if (debugPref) { // If debugging is on, print out what is being called
+
+                       String tempString = "Exec Command:";
+
+                       for (String temp : execArray) {
+
+                           tempString = tempString + " " + temp;
+
+                       }
+
+                       XposedBridge.log(tempString);
+
+                   }
+
+ 
+
+                   if (stringEndsWithFromSet(firstParam, commandSet)) { // Check if the firstParam is one of the keywords we want to filter
+
+                       if (debugPref) {
+
+                           XposedBridge.log("Found blacklisted command at the end of the string: " + firstParam);
+
+                       }
+
+ 
+
+                       // A bunch of logic follows since the solution depends on which command is being called
+
+                       // TODO: ***Clean up this logic***
+
+                       if (commandSet.contains("ls") && execArray.length >= 3 && execArray[1].contains("lib")) {
+
+                           param.setThrowable(new IOException());
+
+                       } else {
+
+                           param.setThrowable(new IOException());
+
+                       }
+
+ 
+
+                       if (debugPref && param.getThrowable() == null) { // Print out the new command if debugging is on
+
+                           String tempString = "New Exec Command:";
+
+                           for (String temp : (String[]) param.args[0]) {
+
+                               tempString = tempString + " " + temp;
+
+                           }
+
+                           XposedBridge.log(tempString);
+
+                       }
+
+                   }
+
+               } else {
+
+                   if (debugPref) {
+
+                       XposedBridge.log("Null or empty array on exec");
+
+                   }
+
+               }
+
+           }
+
+       });
 
         XposedBridge.hookAllMethods(System.class, "getenv",
                 new XC_MethodHook() {
